@@ -11,6 +11,9 @@ This repository contains the Terraform configurations for setting up and hosting
 - [Design Choices](#design-choices)
 - [Getting Started](#getting-started)
 - [Resources](#resources)
+- [Docker Setup](#docker-setup)
+- [Kubernetes Setup](#kubernetes-setup)
+- [Deployment Steps](#deployment-steps)
 
 ## Objective
 
@@ -58,9 +61,6 @@ Provide instructions on how to setup and run the installation using the provided
 - [Crypto.org Chain Getting Started](link-to-documentation)
 - [Chain GitHub Repository](link-to-repository)
 
-
-
-
 ## Docker Setup
 
 ### Overview
@@ -83,9 +83,9 @@ This command builds a Docker image with the tag crypto-org-node.
 docker build -t crypto-org-node .
 ```
 
-Running the Docker Container
-To run a container from the image, use the following command:
+### Running the Docker Container
 
+To run a container from the image, use the following command:
 ```bash
 docker run -d \
   -v /path/to/efs-data:/efs-data \
@@ -95,29 +95,55 @@ docker run -d \
   crypto-org-node
 ```
 
-Make sure to replace `/path/to/efs-data` with the actual path to your EFS data directory. The instructions are clear and straightforward, allowing others to understand how to use your Docker setup to run a Crypto.org blockchain node.
-
+Make sure to replace /path/to/efs-data with the actual path to your EFS data directory.
 
 ## Kubernetes Setup
 
 ### Overview
-
 The provided Kubernetes manifest contains the necessary resources for deploying a Crypto.org blockchain node within a Kubernetes cluster. It defines a StorageClass, PersistentVolume, and PersistentVolumeClaim for EFS storage, a Deployment for the blockchain node, and a LoadBalancer Service for exposing the RPC ports.
 
 ### Components
-
-- **StorageClass (efs-sc)**: Defines the provisioner for AWS EFS.
-- **PersistentVolume (crypto-node-pv-volume)**: Specifies a persistent volume with a size of 50Gi, using the `efs-sc` StorageClass.
-- **PersistentVolumeClaim (crypto-node-pvc)**: Claims the defined persistent volume for use.
-- **Deployment (crypto-node-deployment)**: Defines a deployment with a single replica of the blockchain node, using a custom Docker image.
-- **Service (crypto-node-service)**: A LoadBalancer service for exposing the Tendermint and Cosmos RPC ports to the internet.
+StorageClass (efs-sc): Defines the provisioner for AWS EFS. <br/>
+PersistentVolume (crypto-node-pv-volume): Specifies a persistent volume with a size of 50Gi, using the efs-sc StorageClass. <br/>
+PersistentVolumeClaim (crypto-node-pvc): Claims the defined persistent volume for use. <br/>
+Deployment (crypto-node-deployment): Defines a deployment with a single replica of the blockchain node, using a custom Docker image. <br/>
+Service (crypto-node-service): A LoadBalancer service for exposing the Tendermint and Cosmos RPC ports to the internet. <br/>
 
 ### Deployment
-
-1. Ensure you have a Kubernetes cluster up and running, and your kubectl is configured to interact with it.
-2. Navigate to the directory containing the Kubernetes manifest.
-3. Apply the manifest to your cluster using the following command:
-
+Ensure you have a Kubernetes cluster up and running, and your kubectl is configured to interact with it. <br/>
+Navigate to the directory containing the Kubernetes manifest. <br/>
+Apply the manifest to your cluster using the following command: <br/>
 ```bash
 kubectl apply -f crypto-deployment.yaml
 ```
+
+## Deployment Steps
+
+Deploy the AWS infrastructure using Terraform. <br/>
+Build the Docker image for the blockchain node. <br/>
+After the Terraform deployment is complete, run the following commands to update your local kubeconfig file and install the EFS CSI driver to the cluster: <br/>
+```bash
+aws eks --region $(terraform output -raw region) update-kubeconfig \
+    --name $(terraform output -raw cluster_name)
+
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/ecr/?ref=release-1.3"
+```
+
+Deploy the Kubernetes resources using the provided manifest.
+Once the deployment is running, retrieve the external IP address of your service using the following command:
+```bash
+kubectl get svc crypto-node-service
+```
+
+You can now use the external IP address to connect to your blockchain node using the Tendermint and Cosmos RPC ports.
+
+Tendermint RPC port:
+```bash
+curl http://<external-ip>:26657/status
+```
+
+Cosmos RPC port:
+```bash
+curl http://<external-ip>:1317/node_info
+```
+
