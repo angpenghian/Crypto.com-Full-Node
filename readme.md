@@ -31,7 +31,7 @@ The primary goal is to host an installation of Crypto.org blockchain, implement 
 ## Deliverables
 
 - Terraform Configurations: `terraform/`
-    - Main Configuration: `main.tf`
+    - Main Configuration: `nodes.tf`
     - Variable Definitions: `variables.tf`
     - Output Definitions: `outputs.tf`
 
