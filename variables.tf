@@ -28,6 +28,11 @@ variable "certificate_arn" {
   type        = string
 }
 
+variable "certificate_arn2" {
+  description = "The certificate arn"
+  type        = string
+}
+
 variable "region" {
   description = "The region"
   type        = string
